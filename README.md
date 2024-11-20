@@ -8,7 +8,29 @@ This project demonstrates the deployment of a scalable web application using Ter
 
 #### Terraform Configuration
 
-_Variables aren't allowed in the Terraform block, so you have to create the S3 bucket and DyanmoDB table separately and paste the information here_
+```
+terraform {
+  required_providers {
+    aws = {
+      version = "~> 5.0"
+    }
+  }
+  backend "s3" {
+    bucket         = "your-bucket-name"
+    key            = "backend.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "your-table-name"
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+```
+
+_Variables aren't allowed in the Terraform block, so you have to create the S3 bucket and DyanmoDB table separately and paste the information here._
+
+_Also, Terraform needs your `AWS Access Key ID` and `Secret Access Keys` in order to access your account. You can hardcode them into the `provider` block, load them as environment variables, or add them to your `.aws/config` file._
 
 - **Provider:** Specifies AWS as the provider with a required version `~> 5.0`.
 - **Backend:** Configures remote state management using:
@@ -188,7 +210,7 @@ This configuration ensures controlled communication between the load balancer an
 
 ---
 
-### Launch Template and Auto Scaling Group
+### Launch Template & Auto Scaling Group Configuration
 
 ```
 # Launch Template
