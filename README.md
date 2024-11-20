@@ -4,7 +4,7 @@ This project demonstrates the deployment of a scalable web application using Ter
 
 ---
 
-## Configuration Overview
+### Configuration Overview
 
 #### Terraform Configuration
 
@@ -20,6 +20,50 @@ _Variables aren't allowed in the Terraform block, so you have to create the S3 b
 #### AWS Provider
 
 - **Region:** Sets the deployment region to `us-east-1`.
+
+---
+
+### Variables
+
+```
+variable "vpc_cidr" {
+  default = "10.0.0.0/16"
+}
+
+variable "public_subnet_a_cidr" {
+  default = "10.0.1.0/24"
+}
+
+variable "public_subnet_b_cidr" {
+  default = "10.0.2.0/24"
+}
+
+variable "private_subnet_a_cidr" {
+  default = "10.0.3.0/24"
+}
+
+variable "private_subnet_b_cidr" {
+  default = "10.0.4.0/24"
+}
+
+variable "instance_type" {
+  default = "t2.micro"
+}
+
+variable "asg_instance_min_size" {
+  default = 1
+}
+
+variable "asg_instance_desired_size" {
+  default = 2
+}
+
+variable "asg_instance_max_size" {
+  default = 3
+}
+```
+
+These are the variables needed to configure various resources. You can keep the default values or change them to fit your needs.
 
 ---
 
@@ -95,6 +139,8 @@ This Terraform configuration establishes the foundational networking resources f
 
 ---
 
+### Security Groups Configuration
+
 ```
 resource "aws_security_group" "lb_sg" {
   name        = "allow_tls"
@@ -133,8 +179,6 @@ resource "aws_vpc_security_group_ingress_rule" "app_sg_ingress" {
 }
 ```
 
-### Security Groups Configuration
-
 This code defines security groups and ingress rules to manage network traffic for the application. It creates a security group for the load balancer (`lb_sg`) and another for the application instances (`app_instance`).
 
 - The load balancer security group allows inbound HTTP traffic from any IP address.
@@ -143,6 +187,8 @@ This code defines security groups and ingress rules to manage network traffic fo
 This configuration ensures controlled communication between the load balancer and backend instances within the VPC.
 
 ---
+
+### Launch Template and Auto Scaling Group
 
 ```
 # Launch Template
@@ -181,8 +227,6 @@ resource "aws_autoscaling_group" "private_instance_asg" {
 }
 ```
 
-### Launch Template and Auto Scaling Group
-
 This code configures an EC2 launch template and an Auto Scaling Group (ASG) to manage application instances:
 
 - **Launch Template**: Defines the instance properties such as the AMI, instance type, and associated security group (`app_instance`). It includes tags for identifying launched instances.
@@ -190,3 +234,77 @@ This code configures an EC2 launch template and an Auto Scaling Group (ASG) to m
 - **Auto Scaling Group**: Automatically manages the deployment of instances across private subnets (`private_subnet_a` and `private_subnet_b`) with desired, minimum, and maximum instance counts. Instances launched by the ASG inherit tags for easy identification.
 
 This setup ensures scalable and resilient instance management for private application resources.
+
+---
+
+### Application Load Balancer Configuration
+
+```
+resource "aws_lb" "my_alb" {
+  name               = "my-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.lb_sg.id]
+  subnets            = [aws_subnet.public_subnet_a.id, aws_subnet.public_subnet_b.id]
+
+  tags = {
+    Environment = "Intern ENV"
+  }
+}
+
+resource "aws_lb_target_group" "alb_tg" {
+  name     = "my-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.intern_vpc.id
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Environment = "Intern ENV"
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.my_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alb_tg.arn
+  }
+}
+```
+
+This code sets up an Application Load Balancer (ALB) to distribute traffic to application instances:
+
+- **Load Balancer**: Deploys a public-facing ALB across two public subnets, secured by a specified security group (`lb_sg`). It facilitates HTTP traffic distribution and tagging for environment identification.
+
+- **Target Group**: Defines a group of targets (application instances) that receive traffic from the ALB. Configured for HTTP traffic on port 80, with health checks ensuring instance availability and reliability.
+
+- **Listener**: Configures the ALB to listen for incoming HTTP traffic on port 80 and forwards it to the target group (`alb_tg`) as the default action.
+
+This setup ensures traffic routing to backend instances with health monitoring.
+
+---
+
+### Output Configuration
+
+```
+output "public-alb-dns-name" {
+  value = aws_lb.my_alb.dns_name
+}
+```
+
+This code defines an output variable:
+
+- **Public ALB DNS Name**: Exposes the DNS name of the deployed Application Load Balancer (`my_alb`). This value can be used to access the ALB and verify its functionality.
+
+The output provides a convenient way to reference the ALB endpoint after deployment.
