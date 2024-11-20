@@ -1,6 +1,6 @@
 # Launch Template
 resource "aws_launch_template" "my_template" {
-  name          = "seanih-launch-template"
+  name          = "your-launch-template"
   image_id      = "ami-012967cc5a8c9f891"
   instance_type = var.instance_type
 
@@ -13,8 +13,6 @@ resource "aws_launch_template" "my_template" {
       Name = "Launch Template Instance"
     }
   }
-
-  #   user_data = filebase64("${path.module}/example.sh")
 }
 
 # Auto Scaling Group
