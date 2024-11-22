@@ -28,9 +28,9 @@ provider "aws" {
 }
 ```
 
-_Variables aren't allowed in the Terraform block, so you have to create the S3 bucket and DyanmoDB table separately and paste the information here._
+_Variables aren't allowed in the Terraform block, so you have to create the S3 bucket and DynamoDB table separately and paste the information here._
 
-_Also, Terraform needs your `AWS Access Key ID` and `Secret Access Keys` in order to access your account. You can hardcode them into the `provider` block, load them as environment variables, or add them to your `.aws/config` file._
+_Also, Terraform needs your `AWS Access Key ID` and `Secret Access Key` in order to access your account. You can hardcode them into the `provider` block, load them as environment variables, or add them to your `.aws/config` file._
 
 - **Provider:** Specifies AWS as the provider with a required version `~> 5.0`.
 - **Backend:** Configures remote state management using:
